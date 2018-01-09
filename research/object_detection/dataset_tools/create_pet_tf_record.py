@@ -132,34 +132,39 @@ def dict_to_tf_example(data,
   difficult_obj = []
   masks = []
   for obj in data['object']:
-    difficult = bool(int(obj['difficult']))
-    if ignore_difficult_instances and difficult:
-      continue
-    difficult_obj.append(int(difficult))
+    for rep in range(3):
+      difficult = bool(int(obj['difficult']))
+      if ignore_difficult_instances and difficult:
+        continue
+      difficult_obj.append(int(difficult))
 
-    if faces_only:
-      xmin = float(obj['bndbox']['xmin'])
-      xmax = float(obj['bndbox']['xmax'])
-      ymin = float(obj['bndbox']['ymin'])
-      ymax = float(obj['bndbox']['ymax'])
-    else:
-      xmin = float(np.min(nonzero_x_indices))
-      xmax = float(np.max(nonzero_x_indices))
-      ymin = float(np.min(nonzero_y_indices))
-      ymax = float(np.max(nonzero_y_indices))
+      if faces_only:
+        xmin = float(obj['bndbox']['xmin'])
+        xmax = float(obj['bndbox']['xmax'])
+        ymin = float(obj['bndbox']['ymin'])
+        ymax = float(obj['bndbox']['ymax'])
+      else:
+        xmin = float(np.min(nonzero_x_indices))
+        xmax = float(np.max(nonzero_x_indices))
+        ymin = float(np.min(nonzero_y_indices))
+        ymax = float(np.max(nonzero_y_indices))
 
-    xmins.append(xmin / width)
-    ymins.append(ymin / height)
-    xmaxs.append(xmax / width)
-    ymaxs.append(ymax / height)
-    class_name = get_class_name_from_filename(data['filename'])
-    classes_text.append(class_name.encode('utf8'))
-    classes.append(label_map_dict[class_name])
-    truncated.append(int(obj['truncated']))
-    poses.append(obj['pose'].encode('utf8'))
-    if not faces_only:
-      mask_remapped = mask_np != 2
-      masks.append(mask_remapped)
+      xmins.append(xmin / width)
+      ymins.append(ymin / height)
+      xmaxs.append(xmax / width)
+      ymaxs.append(ymax / height)
+      class_name = get_class_name_from_filename(data['filename'])
+      classes_text.append(class_name.encode('utf8'))
+
+      c = label_map_dict[class_name]
+      c = ((c - 1 + rep) % 37) + 1
+      classes.append(c)
+
+      truncated.append(int(obj['truncated']))
+      poses.append(obj['pose'].encode('utf8'))
+      if not faces_only:
+        mask_remapped = mask_np != 2
+        masks.append(mask_remapped)
 
   feature_dict = {
       'image/height': dataset_util.int64_feature(height),
@@ -257,7 +262,7 @@ def main(_):
 
   train_output_path = os.path.join(FLAGS.output_dir, 'pet_train.record')
   val_output_path = os.path.join(FLAGS.output_dir, 'pet_val.record')
-  if FLAGS.faces_only:
+  if not FLAGS.faces_only:
     train_output_path = os.path.join(FLAGS.output_dir,
                                      'pet_train_with_masks.record')
     val_output_path = os.path.join(FLAGS.output_dir,
