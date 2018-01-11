@@ -1474,7 +1474,10 @@ class FasterRCNNMetaArch(model.DetectionModel):
       # for just one class to avoid over-counting for regression loss and
       # (optionally) mask loss.
       one_hot_flat_cls_targets_with_background = tf.argmax(
-          flat_cls_targets_with_background, axis=1)
+          flat_cls_targets_with_background +
+          tf.random_normal(flat_cls_targets_with_background.get_shape(),
+                           0, 0.0001),
+          axis=1)
       one_hot_flat_cls_targets_with_background = tf.one_hot(
           one_hot_flat_cls_targets_with_background,
           flat_cls_targets_with_background.get_shape()[1])
